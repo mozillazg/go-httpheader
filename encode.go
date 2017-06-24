@@ -1,7 +1,7 @@
+// Package httpheader is a Go library for encoding structs into Header fields.
 package httpheader
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -16,12 +16,13 @@ const tagName = "header"
 const Version = "0.1.0"
 
 var timeType = reflect.TypeOf(time.Time{})
+var headerType = reflect.TypeOf(http.Header{})
 
 var encoderType = reflect.TypeOf(new(Encoder)).Elem()
 
 // Encoder ...
 type Encoder interface {
-	EncodeValues(key string, v *http.Header) error
+	EncodeHeader(key string, v *http.Header) error
 }
 
 // Header returns the http.Header encoding of v.
@@ -86,32 +87,16 @@ func reflectValue(header http.Header, val reflect.Value) error {
 			}
 
 			m := sv.Interface().(Encoder)
-			if err := m.EncodeValues(name, &header); err != nil {
+			if err := m.EncodeHeader(name, &header); err != nil {
 				return err
 			}
 			continue
 		}
 
 		if sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array {
-			var del byte
-
-			if del != 0 {
-				s := new(bytes.Buffer)
-				first := true
-				for i := 0; i < sv.Len(); i++ {
-					if first {
-						first = false
-					} else {
-						s.WriteByte(del)
-					}
-					s.WriteString(valueString(sv.Index(i), opts))
-				}
-				header.Add(name, s.String())
-			} else {
-				for i := 0; i < sv.Len(); i++ {
-					k := name
-					header.Add(k, valueString(sv.Index(i), opts))
-				}
+			for i := 0; i < sv.Len(); i++ {
+				k := name
+				header.Add(k, valueString(sv.Index(i), opts))
 			}
 			continue
 		}
@@ -125,6 +110,15 @@ func reflectValue(header http.Header, val reflect.Value) error {
 
 		if sv.Type() == timeType {
 			header.Add(name, valueString(sv, opts))
+			continue
+		}
+		if sv.Type() == headerType {
+			h := sv.Interface().(http.Header)
+			for k, vs := range h {
+				for _, v := range vs {
+					header.Add(k, v)
+				}
+			}
 			continue
 		}
 
@@ -197,7 +191,7 @@ func isEmptyValue(v reflect.Value) bool {
 	return false
 }
 
-// tagOptions is the string following a comma in a struct field's "url" tag, or
+// tagOptions is the string following a comma in a struct field's "header" tag, or
 // the empty string. It does not include the leading comma.
 type tagOptions []string
 
