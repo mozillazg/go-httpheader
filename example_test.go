@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"bitbucket.org/mozillazg/go-httpheader"
+	"github.com/mozillazg/go-httpheader"
 )
 
 func ExampleHeader() {

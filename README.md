@@ -2,13 +2,14 @@
 
 go-httpheader is a Go library for encoding structs into Header fields.
 
-[![Build Status](https://circleci.com/bb/mozillazg/go-httpheader.svg?style=svg)](https://circleci.com/bb/mozillazg/go-httpheader)
-[![Go Report Card](https://goreportcard.com/badge/bitbucket.org/mozillazg/go-httpheader)](https://goreportcard.com/report/bitbucket.org/mozillazg/go-httpheader)
-[![GoDoc](https://godoc.org/bitbucket.org/mozillazg/go-httpheader?status.svg)](https://godoc.org/bitbucket.org/mozillazg/go-httpheader)
+[![Build Status](https://img.shields.io/travis/mozillazg/go-httpheader/master.svg)](https://travis-ci.org/mozillazg/go-httpheader)
+[![Coverage Status](https://img.shields.io/coveralls/mozillazg/go-httpheader/master.svg)](https://coveralls.io/r/mozillazg/go-httpheader?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mozillazg/go-httpheader)](https://goreportcard.com/report/github.com/mozillazg/go-httpheader)
+[![GoDoc](https://godoc.org/github.com/mozillazg/go-httpheader?status.svg)](https://godoc.org/github.com/mozillazg/go-httpheader)
 
 ## install
 
-`go get -u bitbucket.org/mozillazg/go-httpheader`
+`go get -u github.com/mozillazg/go-httpheader`
 
 
 ## usage
@@ -20,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"bitbucket.org/mozillazg/go-httpheader"
+	"github.com/mozillazg/go-httpheader"
 )
 
 func main() {
