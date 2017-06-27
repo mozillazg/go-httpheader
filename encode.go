@@ -1,4 +1,20 @@
-// Package httpheader is a Go library for encoding structs into Header fields.
+// Package query implements encoding of structs into http.Header fields.
+//
+// As a simple example:
+//
+// 	type Options struct {
+// 		ContentType  string `header:"Content-Type"`
+// 		Length       int
+// 	}
+//
+// 	opt := Options{"application/json", 2}
+// 	h, _ := httpheader.Header(opt)
+// 	fmt.Printf("%#v", h)
+// 	// will output:
+// 	// http.Header{"Content-Type":[]string{"application/json"},"Length":[]string{"2"}}
+//
+// The exact mapping between Go values and http.Header is described in the
+// documentation for the Header() function.
 package httpheader
 
 import (
@@ -20,12 +36,73 @@ var headerType = reflect.TypeOf(http.Header{})
 
 var encoderType = reflect.TypeOf(new(Encoder)).Elem()
 
-// Encoder ...
+// Encoder is an interface implemented by any type that wishes to encode
+// itself into Header fields in a non-standard way.
 type Encoder interface {
 	EncodeHeader(key string, v *http.Header) error
 }
 
 // Header returns the http.Header encoding of v.
+//
+// Header expects to be passed a struct, and traverses it recursively using the
+// following encoding rules.
+//
+// Each exported struct field is encoded as a Header field unless
+//
+//	- the field's tag is "-", or
+//	- the field is empty and its tag specifies the "omitempty" option
+//
+// The empty values are false, 0, any nil pointer or interface value, any array
+// slice, map, or string of length zero, and any time.Time that returns true
+// for IsZero().
+//
+// The Header field name defaults to the struct field name but can be
+// specified in the struct field's tag value.  The "header" key in the struct
+// field's tag value is the key name, followed by an optional comma and
+// options.  For example:
+//
+// 	// Field is ignored by this package.
+// 	Field int `header:"-"`
+//
+// 	// Field appears as Header field "X-Name".
+// 	Field int `header:"X-Name"`
+//
+// 	// Field appears as Header field "X-Name" and the field is omitted if
+// 	// its value is empty
+// 	Field int `header:"X-Name,omitempty"`
+//
+// 	// Field appears as Header field "Field" (the default), but the field
+// 	// is skipped if empty.  Note the leading comma.
+// 	Field int `header:",omitempty"`
+//
+// For encoding individual field values, the following type-dependent rules
+// apply:
+//
+// Boolean values default to encoding as the strings "true" or "false".
+// Including the "int" option signals that the field should be encoded as the
+// strings "1" or "0".
+//
+// time.Time values default to encoding as RFC1123("Mon, 02 Jan 2006 15:04:05 GMT")
+// timestamps. Including the "unix" option signals that the field should be
+// encoded as a Unix time (see time.Unix())
+//
+// Slice and Array values default to encoding as multiple Header values of the
+// same name. example:
+// X-Name: []string{"Tom", "Jim"}, etc.
+//
+// http.Header values will be used to extend the Header fields.
+//
+// Anonymous struct fields are usually encoded as if their inner exported
+// fields were fields in the outer struct, subject to the standard Go
+// visibility rules. An anonymous struct field with a name given in its Header
+// tag is treated as having that name, rather than being anonymous.
+//
+// Non-nil pointer values are encoded as the value pointed to.
+//
+// All other values are encoded using their default string representation.
+//
+// Multiple fields that encode to the same Header filed name will be included
+// as multiple Header values of the same name.
 func Header(v interface{}) (http.Header, error) {
 	h := make(http.Header)
 	val := reflect.ValueOf(v)
@@ -48,7 +125,7 @@ func Header(v interface{}) (http.Header, error) {
 	return h, err
 }
 
-// reflectValue populates the values parameter from the struct fields in val.
+// reflectValue populates the header fields from the struct fields in val.
 // Embedded structs are followed recursively (using the rules defined in the
 // Values function documentation) breadth-first.
 func reflectValue(header http.Header, val reflect.Value) error {
@@ -195,7 +272,7 @@ func isEmptyValue(v reflect.Value) bool {
 // the empty string. It does not include the leading comma.
 type tagOptions []string
 
-// parseTag splits a struct field's url tag into its name and comma-separated
+// parseTag splits a struct field's header tag into its name and comma-separated
 // options.
 func parseTag(tag string) (string, tagOptions) {
 	s := strings.Split(tag, ",")
