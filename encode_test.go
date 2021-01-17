@@ -117,11 +117,11 @@ func TestHeader_types(t *testing.T) {
 	for i, tt := range tests {
 		v, err := Header(tt.in)
 		if err != nil {
-			t.Errorf("%d. Header(%q) returned error: %v", i, tt.in, err)
+			t.Errorf("%d. Header(%+v) returned error: %v", i, tt.in, err)
 		}
 
 		if !reflect.DeepEqual(tt.want, v) {
-			t.Errorf("%d. Header(%q) returned %#v, want %#v", i, tt.in, v, tt.want)
+			t.Errorf("%d. Header(%+v) returned %#v, want %#v", i, tt.in, v, tt.want)
 		}
 	}
 }
@@ -202,11 +202,11 @@ func TestHeader_embeddedStructs(t *testing.T) {
 	for i, tt := range tests {
 		v, err := Header(tt.in)
 		if err != nil {
-			t.Errorf("%d. Header(%q) returned error: %v", i, tt.in, err)
+			t.Errorf("%d. Header(%+v) returned error: %v", i, tt.in, err)
 		}
 
 		if !reflect.DeepEqual(tt.want, v) {
-			t.Errorf("%d. Header(%q) returned %v, want %v", i, tt.in, v, tt.want)
+			t.Errorf("%d. Header(%+v) returned %v, want %v", i, tt.in, v, tt.want)
 		}
 	}
 }
@@ -233,7 +233,7 @@ func TestHeader_Marshaler(t *testing.T) {
 	}{[]string{"a", "b", "c"}}
 	v, err := Header(s)
 	if err != nil {
-		t.Errorf("Header(%q) returned error: %v", s, err)
+		t.Errorf("Header(%+v) returned error: %v", s, err)
 	}
 
 	want := http.Header{
@@ -242,7 +242,7 @@ func TestHeader_Marshaler(t *testing.T) {
 		"Arg.2": []string{"c"},
 	}
 	if !reflect.DeepEqual(want, v) {
-		t.Errorf("Header(%q) returned %v, want %v", s, v, want)
+		t.Errorf("Header(%+v) returned %v, want %v", s, v, want)
 	}
 }
 
@@ -252,19 +252,19 @@ func TestHeader_MarshalerWithNilPointer(t *testing.T) {
 	}{}
 	v, err := Header(s)
 	if err != nil {
-		t.Errorf("Header(%q) returned error: %v", s, err)
+		t.Errorf("Header(%+v) returned error: %v", s, err)
 	}
 
 	want := http.Header{}
 	if !reflect.DeepEqual(want, v) {
-		t.Errorf("Header(%q) returned %v, want %v", s, v, want)
+		t.Errorf("Header(%+v) returned %v, want %v", s, v, want)
 	}
 }
 
 func TestTagParsing(t *testing.T) {
 	name, opts := parseTag("field,foobar,foo")
 	if name != "field" {
-		t.Fatalf("name = %q, want field", name)
+		t.Fatalf("name = %+v, want field", name)
 	}
 	for _, tt := range []struct {
 		opt  string
@@ -276,7 +276,7 @@ func TestTagParsing(t *testing.T) {
 		{"field", false},
 	} {
 		if opts.Contains(tt.opt) != tt.want {
-			t.Errorf("Contains(%q) = %v", tt.opt, !tt.want)
+			t.Errorf("Contains(%+v) = %v", tt.opt, !tt.want)
 		}
 	}
 }
