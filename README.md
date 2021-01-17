@@ -3,7 +3,7 @@
 go-httpheader is a Go library for encoding structs into Header fields.
 
 [![Build Status](https://img.shields.io/travis/mozillazg/go-httpheader/master.svg)](https://travis-ci.org/mozillazg/go-httpheader)
-[![Coverage Status](https://img.shields.io/coveralls/mozillazg/go-httpheader/master.svg)](https://coveralls.io/r/mozillazg/go-httpheader?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/mozillazg/go-httpheader/badge.svg?branch=master)](https://coveralls.io/github/mozillazg/go-httpheader?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mozillazg/go-httpheader)](https://goreportcard.com/report/github.com/mozillazg/go-httpheader)
 [![GoDoc](https://godoc.org/github.com/mozillazg/go-httpheader?status.svg)](https://godoc.org/github.com/mozillazg/go-httpheader)
 
