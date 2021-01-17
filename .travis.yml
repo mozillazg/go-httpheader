@@ -6,7 +6,6 @@ go:
   - '1.13'
   - '1.14'
   - '1.15'
-  - master
 
 sudo: false
 
@@ -24,4 +23,3 @@ script:
 matrix:
   allow_failures:
     - go: '1.10'
-    - go: master
