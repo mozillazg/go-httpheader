@@ -13,12 +13,12 @@ var decoderType = reflect.TypeOf(new(Decoder)).Elem()
 // Decoder is an interface implemented by any type that wishes to decode
 // itself from Header fields in a non-standard way.
 type Decoder interface {
-	ParseHeader(header http.Header, v interface{}) error
+	DecodeHeader(header http.Header, v interface{}) error
 }
 
-// ParseHeader expects to be passed an http.Header and a struct, and parses
+// DecodeHeader expects to be passed an http.Header and a struct, and parses
 // header into the struct recursively using the same rules as Header (see above)
-func ParseHeader(header http.Header, v interface{}) error {
+func DecodeHeader(header http.Header, v interface{}) error {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -62,7 +62,7 @@ func parseValue(header http.Header, val reflect.Value) error {
 			}
 
 			m := sv.Interface().(Decoder)
-			if err := m.ParseHeader(header, &val); err != nil {
+			if err := m.DecodeHeader(header, &val); err != nil {
 				return err
 			}
 			continue
