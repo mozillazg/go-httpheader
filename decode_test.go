@@ -1,6 +1,8 @@
 package httpheader
 
 import (
+	"net/http"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -41,17 +43,18 @@ func init() {
 
 }
 
-func getHeaders(e Event) map[string][]string {
-	return map[string][]string{
-		"X-Goog-Channel-ID":         {"channel-ID-value"},
-		"X-Goog-Channel-Token":      {"channel-token-value"},
-		"X-Goog-Channel-Expiration": {"Tue, 19 Nov 2013 01:13:52 GMT"},
-		"X-Goog-Resource-ID":        {"identifier-for-the-watched-resource"},
-		"X-Goog-Resource-URI":       {"version-specific-URI-of-the-watched-resource"},
-		"X-Goog-Message-Number":     {"1"},
-		"X-Goog-Resource-State":     {string(e)},
-	}
+func getHeader(e Event) http.Header {
+	h := http.Header{}
+	h.Add("X-Goog-Channel-ID", "channel-ID-value")
+	h.Add("X-Goog-Channel-Token", "channel-token-value")
+	h.Add("X-Goog-Channel-Expiration", "Tue, 19 Nov 2013 01:13:52 GMT")
+	h.Add("X-Goog-Resource-ID", "identifier-for-the-watched-resource")
+	h.Add("X-Goog-Resource-URI", "version-specific-URI-of-the-watched-resource")
+	h.Add("X-Goog-Message-Number", "1")
+	h.Add("X-Goog-Resource-State", string(e))
+	return h
 }
+
 func TestDecodeHeader(t *testing.T) {
 	type args struct {
 		e Event
@@ -61,19 +64,22 @@ func TestDecodeHeader(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{"Google Calendar sync", args{SyncEvent}, false},
 		{"Google Calendar exists", args{ExistsEvent}, false},
 		{"Google Calendar no exists", args{NotExistsEvent}, false},
 	}
 
-	for _, tt := range tests {
+	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			plrun := *pl
 			plrun.ResourceState = string(tt.args.e)
-			blank := GoogleCalendarPayload{}
-			if err := DecodeHeader(getHeaders(tt.args.e), &blank); (err != nil) != tt.wantErr {
-				t.Errorf("DecodeHeader() error = %v, wantErr %v", err, tt.wantErr)
+			gcp := GoogleCalendarPayload{}
+			err := DecodeHeader(getHeader(tt.args.e), &gcp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%d. DecodeHeader() error = %+v, wantErr %+v", i, err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(gcp, plrun) {
+				t.Errorf("%d. DecodeHeader() does not work as expected, \ngot %+v \nwant %+v", i, gcp, plrun)
 			}
 		})
 	}
