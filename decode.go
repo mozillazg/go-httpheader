@@ -22,7 +22,6 @@ func DecodeHeader(header http.Header, v interface{}) error {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		val = val.Elem()
-		fmt.Println(val.Kind())
 	}
 
 	if val.Kind() != reflect.Struct {
