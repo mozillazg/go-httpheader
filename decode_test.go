@@ -8,8 +8,6 @@ import (
 	"sort"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // Event defines a Google Calendar hook event type
@@ -76,7 +74,9 @@ func TestDecodeHeader(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%d. Decode() error = %+v, wantErr %+v", i, err, tt.wantErr)
 			}
-			assert.Equal(t, plrun, gcp)
+			if !reflect.DeepEqual(gcp, plrun) {
+				t.Errorf("%d. Decode() does not work as expected, \ngot %+v \nwant %+v", i, gcp, plrun)
+			}
 		})
 	}
 }
@@ -115,19 +115,22 @@ func TestDecodeHeader_Unmarshaler(t *testing.T) {
 	var got ArgStruct
 
 	err := Decode(input, &got)
-	assert.NoError(t, err)
-	assert.Equal(t, want, got)
+	if err != nil {
+		t.Errorf("want no error, got error: %#v", err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Decode returned %#v, want %#v", got, want)
+	}
 }
 
 func TestDecodeHeader_UnmarshalerWithNilPointer(t *testing.T) {
 	s := struct {
 		Args *EncodedArgs `header:"Arg"`
 	}{}
-	got, err := Header(s)
-	assert.NoError(t, err)
-
-	want := http.Header{}
-	assert.Equal(t, want, got)
+	err := Decode(http.Header{}, s)
+	if err == nil {
+		t.Error("want error but got nil")
+	}
 }
 
 type simpleStruct struct {
@@ -161,12 +164,12 @@ type fullTypeStruct struct {
 	Interface         interface{}
 	Time              time.Time
 	TimeUnix          time.Time `header:"Time-Unix,unix"`
-	Point             *string
-	Args              DecodedArgs `header:"Arg"`
-	Foo               simpleStruct
+	// Point             *string
+	Args DecodedArgs `header:"Arg"`
+	Foo  simpleStruct
 }
 
-func TestDecodeHeader_2(t *testing.T) {
+func TestDecodeHeader_more_data_type(t *testing.T) {
 	timeV := time.Date(2000, 1, 1, 12, 34, 56, 0, time.UTC)
 	timeS := "Sat, 01 Jan 2000 12:34:56 GMT"
 	timeU := "946730096"
@@ -229,16 +232,38 @@ func TestDecodeHeader_2(t *testing.T) {
 		Interface:         interface{}([]string{"foo", "bar"}),
 		Time:              timeV,
 		TimeUnix:          timeV,
-		Point:             stringPoint("foo"),
-		Args:              []string{"a", "b", "c"},
-		Foo:               simpleStruct{Foo: "bar"},
+		// Point:             stringPoint("foo"),
+		Args: []string{"a", "b", "c"},
+		Foo:  simpleStruct{Foo: "bar"},
 	}
 	var got fullTypeStruct
 	err := Decode(h, &got)
-	assert.NoError(t, err)
-	assert.EqualValues(t, want, got)
+	if err != nil {
+		t.Errorf("Decode returned error: %#v", err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("want %#v, but got %#v", want, got)
+	}
 }
 
+func TestDecodeHeader_point(t *testing.T) {
+	type A struct {
+		Point *string
+	}
+	h := http.Header{}
+	h.Set("Point", "foobar")
+	want := A{
+		Point: stringPoint("foobar"),
+	}
+	var got A
+	err := Decode(h, &got)
+	if err != nil {
+		t.Errorf("Decode returned error: %#v", err)
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("want %#v, but got %#v", want, got)
+	}
+}
 func stringPoint(s string) *string {
 	return &s
 }

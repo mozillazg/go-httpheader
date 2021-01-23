@@ -46,7 +46,7 @@ func ExampleHeader() {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		fmt.Printf("%s: %#v\n", k, h.Values(k))
+		fmt.Printf("%s: %#v\n", k, h[k])
 	}
 	// Output:
 	// Bool: []string{"true"}

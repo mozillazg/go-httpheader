@@ -3,6 +3,7 @@ package httpheader
 import (
 	"fmt"
 	"net/http"
+	"net/textproto"
 	"reflect"
 	"strconv"
 	"time"
@@ -73,7 +74,7 @@ func parseValue(header http.Header, val reflect.Value) error {
 
 		if sv.Kind() == reflect.Ptr {
 			ve := reflect.New(sv.Type().Elem())
-			if err := fillValues(ve, opts, header.Values(name)); err != nil {
+			if err := fillValues(ve, opts, headerValues(header, name)); err != nil {
 				return err
 			}
 			sv.Set(ve)
@@ -81,7 +82,7 @@ func parseValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Type() == timeType {
-			if err := fillValues(sv, opts, header.Values(name)); err != nil {
+			if err := fillValues(sv, opts, headerValues(header, name)); err != nil {
 				return err
 			}
 			continue
@@ -94,7 +95,7 @@ func parseValue(header http.Header, val reflect.Value) error {
 			continue
 		}
 
-		if err := fillValues(sv, opts, header.Values(name)); err != nil {
+		if err := fillValues(sv, opts, headerValues(header, name)); err != nil {
 			return err
 		}
 	}
@@ -246,4 +247,8 @@ func fillValues(sv reflect.Value, opts tagOptions, valArr []string) error {
 
 	// sv.Set(reflect.ValueOf(value))
 	return nil
+}
+
+func headerValues(h http.Header, key string) []string {
+	return textproto.MIMEHeader(h).Values(key)
 }
