@@ -1,16 +1,19 @@
 package httpheader
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
+	"sort"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Event defines a Google Calendar hook event type
 type Event string
-
-var pl *GoogleCalendarPayload
 
 // GoogleCalendar hook types
 const (
@@ -29,18 +32,6 @@ type GoogleCalendarPayload struct {
 	ResourceURI       string    `header:"X-Goog-Resource-URI"`
 	ResourceState     string    `header:"X-Goog-Resource-State"`
 	MessageNumber     int       `header:"X-Goog-Message-Number"`
-}
-
-func init() {
-	pl = &GoogleCalendarPayload{
-		ChannelID:     "channel-ID-value",
-		ChannelToken:  "channel-token-value",
-		ResourceID:    "identifier-for-the-watched-resource",
-		ResourceURI:   "version-specific-URI-of-the-watched-resource",
-		MessageNumber: 1,
-	}
-	pl.ChannelExpiration, _ = time.Parse(time.RFC1123, "Tue, 19 Nov 2013 01:13:52 GMT")
-
 }
 
 func getHeader(e Event) http.Header {
@@ -71,7 +62,14 @@ func TestDecodeHeader(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			plrun := *pl
+			plrun := GoogleCalendarPayload{
+				ChannelID:     "channel-ID-value",
+				ChannelToken:  "channel-token-value",
+				ResourceID:    "identifier-for-the-watched-resource",
+				ResourceURI:   "version-specific-URI-of-the-watched-resource",
+				MessageNumber: 1,
+			}
+			plrun.ChannelExpiration, _ = time.Parse(http.TimeFormat, "Tue, 19 Nov 2013 01:13:52 GMT")
 			plrun.ResourceState = string(tt.args.e)
 			gcp := GoogleCalendarPayload{}
 			err := DecodeHeader(getHeader(tt.args.e), &gcp)
@@ -83,4 +81,154 @@ func TestDecodeHeader(t *testing.T) {
 			}
 		})
 	}
+}
+
+type DecodedArgs []string
+
+func (m *DecodedArgs) DecodeHeader(header http.Header, tagKey string) error {
+	baseKey := http.CanonicalHeaderKey(tagKey)
+	keyMatch := regexp.MustCompile(fmt.Sprintf(`^%s\.\d+$`, baseKey))
+	var args DecodedArgs
+	for k := range header {
+		if keyMatch.MatchString(http.CanonicalHeaderKey(k)) {
+			args = append(args, header.Get(k))
+		}
+	}
+	// TODO: sort args by id
+	sort.Strings(args)
+	if len(args) > 0 {
+		*m = args
+	}
+	return nil
+}
+
+func TestDecodeHeader_Unmarshaler(t *testing.T) {
+	type ArgStruct struct {
+		Args DecodedArgs `header:"Arg"`
+	}
+	input := http.Header{
+		"Arg.0": []string{"a"},
+		"Arg.1": []string{"b"},
+		"Arg.2": []string{"c"},
+	}
+	want := ArgStruct{
+		Args: []string{"a", "b", "c"},
+	}
+	var got ArgStruct
+
+	err := DecodeHeader(input, &got)
+	assert.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestDecodeHeader_UnmarshalerWithNilPointer(t *testing.T) {
+	s := struct {
+		Args *EncodedArgs `header:"Arg"`
+	}{}
+	got, err := Header(s)
+	assert.NoError(t, err)
+
+	want := http.Header{}
+	assert.Equal(t, want, got)
+}
+
+type fullTypeStruct struct {
+	unExport          string
+	UnExportTwo       string `header:"-"`
+	Bool              bool   `header:"Bool"`
+	BoolInt           bool   `header:"Bool-Int,int"`
+	String            string
+	StringEmpty       string `header:"String-Empty"`
+	StringEmptyIgnore string `header:"String-Empty-Ignore,omitempty"`
+	Uint              uint
+	Uint64            uint64
+	Uint8             uint8
+	Uint16            uint16
+	Uint32            uint32
+	Int               int
+	Int64             int64
+	Int8              int8
+	Int16             int16
+	Int32             int32
+	Float32           float32
+	Float64           float64
+	Slice             []string
+	SliceTwo          []int `header:"Slice-Two"`
+	Array             [3]string
+	ArrayTwo          [2]int `header:"Array-Two"`
+	Interface         interface{}
+	Time              time.Time
+	TimeUnix          time.Time `header:"Time-Unix,unix"`
+	Point             *string
+}
+
+func TestDecodeHeader_2(t *testing.T) {
+	timeV := time.Date(2000, 1, 1, 12, 34, 56, 0, time.UTC)
+	timeS := "Sat, 01 Jan 2000 12:34:56 GMT"
+	timeU := "946730096"
+	h := http.Header{
+		"UnExportTwo":  []string{"foo"},
+		"UnExport-Two": []string{"foo"},
+		"Bool":         []string{"true"},
+		"Bool-Int":     []string{"1"},
+		"String":       []string{"foobar"},
+		"String-Empty": []string{""},
+		"Uint":         []string{"2"},
+		"Uint64":       []string{"3"},
+		"Uint8":        []string{"4"},
+		"Uint16":       []string{"5"},
+		"Uint32":       []string{"6"},
+		"Int":          []string{"7"},
+		"Int64":        []string{"8"},
+		"Int8":         []string{"9"},
+		"Int16":        []string{"10"},
+		"Int32":        []string{"11"},
+		"Float32":      []string{"12.2"},
+		"Float64":      []string{"13.2"},
+		"Slice":        []string{"a", "b", "c"},
+		"Slice-Two":    []string{"1", "2", "3"},
+		"Array":        []string{"a", "b", "c"},
+		"Array-Two":    []string{"1", "2", "3"},
+		"Interface":    []string{"foo", "bar"},
+		"Time":         []string{timeS},
+		"Time-Unix":    []string{timeU},
+		"Point":        []string{"foo"},
+	}
+	want := fullTypeStruct{
+		unExport:          "",
+		UnExportTwo:       "",
+		Bool:              true,
+		BoolInt:           true,
+		String:            "foobar",
+		StringEmpty:       "",
+		StringEmptyIgnore: "",
+		Uint:              2,
+		Uint64:            3,
+		Uint8:             4,
+		Uint16:            5,
+		Uint32:            6,
+		Int:               7,
+		Int64:             8,
+		Int8:              9,
+		Int16:             10,
+		Int32:             11,
+		Float32:           12.2,
+		Float64:           13.2,
+		Slice:             []string{"a", "b", "c"},
+		SliceTwo:          []int{1, 2, 3},
+		Array:             [3]string{"a", "b", "c"},
+		ArrayTwo:          [2]int{1, 2},
+		Interface:         interface{}([]string{"foo", "bar"}),
+		Time:              timeV,
+		TimeUnix:          timeV,
+		Point:             stringPoint("foo"),
+	}
+	var got fullTypeStruct
+	err := DecodeHeader(h, &got)
+	assert.NoError(t, err)
+	assert.EqualValues(t, want, got)
+}
+
+func stringPoint(s string) *string {
+	return &s
 }
