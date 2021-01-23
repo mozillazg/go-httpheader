@@ -3,6 +3,7 @@ package httpheader
 import (
 	"fmt"
 	"net/http"
+	"net/textproto"
 	"reflect"
 	"regexp"
 	"sort"
@@ -84,11 +85,11 @@ func TestDecodeHeader(t *testing.T) {
 type DecodedArgs []string
 
 func (m *DecodedArgs) DecodeHeader(header http.Header, tagKey string) error {
-	baseKey := http.CanonicalHeaderKey(tagKey)
+	baseKey := textproto.CanonicalMIMEHeaderKey(tagKey)
 	keyMatch := regexp.MustCompile(fmt.Sprintf(`^%s\.\d+$`, baseKey))
 	var args DecodedArgs
 	for k := range header {
-		if keyMatch.MatchString(http.CanonicalHeaderKey(k)) {
+		if keyMatch.MatchString(textproto.CanonicalMIMEHeaderKey(k)) {
 			args = append(args, header.Get(k))
 		}
 	}

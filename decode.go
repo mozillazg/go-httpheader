@@ -250,5 +250,5 @@ func fillValues(sv reflect.Value, opts tagOptions, valArr []string) error {
 }
 
 func headerValues(h http.Header, key string) []string {
-	return textproto.MIMEHeader(h).Values(key)
+	return textproto.MIMEHeader(h)[textproto.CanonicalMIMEHeaderKey(key)]
 }
