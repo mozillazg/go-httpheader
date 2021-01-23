@@ -76,9 +76,7 @@ func TestDecodeHeader(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%d. Decode() error = %+v, wantErr %+v", i, err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(gcp, plrun) {
-				t.Errorf("%d. Decode() does not work as expected, \ngot %+v \nwant %+v", i, gcp, plrun)
-			}
+			assert.Equal(t, plrun, gcp)
 		})
 	}
 }
@@ -132,6 +130,10 @@ func TestDecodeHeader_UnmarshalerWithNilPointer(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+type simpleStruct struct {
+	Foo string
+}
+
 type fullTypeStruct struct {
 	unExport          string
 	UnExportTwo       string `header:"-"`
@@ -160,6 +162,8 @@ type fullTypeStruct struct {
 	Time              time.Time
 	TimeUnix          time.Time `header:"Time-Unix,unix"`
 	Point             *string
+	Args              DecodedArgs `header:"Arg"`
+	Foo               simpleStruct
 }
 
 func TestDecodeHeader_2(t *testing.T) {
@@ -193,6 +197,10 @@ func TestDecodeHeader_2(t *testing.T) {
 		"Time":         []string{timeS},
 		"Time-Unix":    []string{timeU},
 		"Point":        []string{"foo"},
+		"Arg.0":        []string{"a"},
+		"Arg.1":        []string{"b"},
+		"Arg.2":        []string{"c"},
+		"Foo":          []string{"bar"},
 	}
 	want := fullTypeStruct{
 		unExport:          "",
@@ -222,6 +230,8 @@ func TestDecodeHeader_2(t *testing.T) {
 		Time:              timeV,
 		TimeUnix:          timeV,
 		Point:             stringPoint("foo"),
+		Args:              []string{"a", "b", "c"},
+		Foo:               simpleStruct{Foo: "bar"},
 	}
 	var got fullTypeStruct
 	err := Decode(h, &got)
@@ -231,4 +241,133 @@ func TestDecodeHeader_2(t *testing.T) {
 
 func stringPoint(s string) *string {
 	return &s
+}
+
+func Test_fillValues_errors(t *testing.T) {
+	type args struct {
+		sv     reflect.Value
+		opts   tagOptions
+		valArr []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Uint",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(uint(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Uint64",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(uint64(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Uint8",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(uint8(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Uint16",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(uint16(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Uint32",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(uint32(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "int",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(int(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "int64",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(int64(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "int8",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(int8(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "int16",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(int16(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "int32",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(int32(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "float32",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(float32(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "float64",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(float64(3))),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := fillValues(tt.args.sv, tt.args.opts, tt.args.valArr); (err != nil) != tt.wantErr {
+				t.Errorf("fillValues() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

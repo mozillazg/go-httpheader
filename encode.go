@@ -1,4 +1,4 @@
-// Package query implements encoding of structs into http.Header fields.
+// Package httpheader implements encoding of structs into http.Header fields.
 //
 // As a simple example:
 //
@@ -200,7 +200,9 @@ func reflectValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Kind() == reflect.Struct {
-			reflectValue(header, sv)
+			if err := reflectValue(header, sv); err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -287,4 +289,9 @@ func (o tagOptions) Contains(option string) bool {
 		}
 	}
 	return false
+}
+
+// Encode is an alias of Header function
+func Encode(v interface{}) (http.Header, error) {
+	return Header(v)
 }
