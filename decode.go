@@ -14,9 +14,9 @@ type Decoder interface {
 	DecodeHeader(header http.Header, tagKey string) error
 }
 
-// DecodeHeader expects to be passed an http.Header and a struct, and parses
+// Decode expects to be passed an http.Header and a struct, and parses
 // header into the struct recursively using the same rules as Header (see above)
-func DecodeHeader(header http.Header, v interface{}) error {
+func Decode(header http.Header, v interface{}) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		return fmt.Errorf("v should be point and should not be nil")

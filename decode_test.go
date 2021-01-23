@@ -72,12 +72,12 @@ func TestDecodeHeader(t *testing.T) {
 			plrun.ChannelExpiration, _ = time.Parse(http.TimeFormat, "Tue, 19 Nov 2013 01:13:52 GMT")
 			plrun.ResourceState = string(tt.args.e)
 			gcp := GoogleCalendarPayload{}
-			err := DecodeHeader(getHeader(tt.args.e), &gcp)
+			err := Decode(getHeader(tt.args.e), &gcp)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("%d. DecodeHeader() error = %+v, wantErr %+v", i, err, tt.wantErr)
+				t.Errorf("%d. Decode() error = %+v, wantErr %+v", i, err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(gcp, plrun) {
-				t.Errorf("%d. DecodeHeader() does not work as expected, \ngot %+v \nwant %+v", i, gcp, plrun)
+				t.Errorf("%d. Decode() does not work as expected, \ngot %+v \nwant %+v", i, gcp, plrun)
 			}
 		})
 	}
@@ -116,7 +116,7 @@ func TestDecodeHeader_Unmarshaler(t *testing.T) {
 	}
 	var got ArgStruct
 
-	err := DecodeHeader(input, &got)
+	err := Decode(input, &got)
 	assert.NoError(t, err)
 	assert.Equal(t, want, got)
 }
@@ -224,7 +224,7 @@ func TestDecodeHeader_2(t *testing.T) {
 		Point:             stringPoint("foo"),
 	}
 	var got fullTypeStruct
-	err := DecodeHeader(h, &got)
+	err := Decode(h, &got)
 	assert.NoError(t, err)
 	assert.EqualValues(t, want, got)
 }
