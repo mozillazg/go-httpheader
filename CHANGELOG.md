@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (2021-01-24)
+
+* add `func Decode(header http.Header, v interface{}) error` to support decoding headers into struct
+
 ## 0.2.1 (2018-11-03)
 
 * add go.mod file to identify as a module
