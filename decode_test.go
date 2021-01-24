@@ -84,8 +84,8 @@ func TestDecodeHeader(t *testing.T) {
 
 type DecodedArgs []string
 
-func (m *DecodedArgs) DecodeHeader(header http.Header, tagKey string) error {
-	baseKey := textproto.CanonicalMIMEHeaderKey(tagKey)
+func (m *DecodedArgs) DecodeHeader(header http.Header, key string) error {
+	baseKey := textproto.CanonicalMIMEHeaderKey(key)
 	keyMatch := regexp.MustCompile(fmt.Sprintf(`^%s\.\d+$`, baseKey))
 	var args DecodedArgs
 	for k := range header {

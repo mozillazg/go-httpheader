@@ -12,7 +12,7 @@ import (
 // Decoder is an interface implemented by any type that wishes to decode
 // itself from Header fields in a non-standard way.
 type Decoder interface {
-	DecodeHeader(header http.Header, tagKey string) error
+	DecodeHeader(header http.Header, key string) error
 }
 
 // Decode expects to be passed an http.Header and a struct, and parses

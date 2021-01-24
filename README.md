@@ -58,6 +58,10 @@ func main() {
 	//	"Length":       []string{"2"},
 	//	"X-Array":      []string{"test1", "test2"},
 	//	"X-Empty-N":    []string{"n"},
-	//}
+	// }
+	
+	// decode
+	var decode Options
+	httpheader.Decode(h, &decode)
 }
 ```
