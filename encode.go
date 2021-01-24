@@ -29,7 +29,7 @@ import (
 const tagName = "header"
 
 // Version ...
-const Version = "0.2.1"
+const Version = "0.3.0"
 
 var timeType = reflect.TypeOf(time.Time{})
 var headerType = reflect.TypeOf(http.Header{})
