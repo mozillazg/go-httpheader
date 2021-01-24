@@ -229,7 +229,7 @@ func (m EncodedArgs) EncodeHeader(key string, v *http.Header) error {
 
 func TestHeader_Marshaler(t *testing.T) {
 	s := struct {
-		Args EncodedArgs `header:"arg"`
+		Args EncodedArgs `header:"Arg"`
 	}{[]string{"a", "b", "c"}}
 	v, err := Header(s)
 	if err != nil {
@@ -248,7 +248,7 @@ func TestHeader_Marshaler(t *testing.T) {
 
 func TestHeader_MarshalerWithNilPointer(t *testing.T) {
 	s := struct {
-		Args *EncodedArgs `header:"arg"`
+		Args *EncodedArgs `header:"Arg"`
 	}{}
 	v, err := Header(s)
 	if err != nil {
