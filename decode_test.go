@@ -244,7 +244,7 @@ func TestDecodeHeader_more_data_type(t *testing.T) {
 		t.Errorf("Decode returned error: %#v", err)
 	}
 	if !reflect.DeepEqual(want, got) {
-		t.Errorf("want %#v, but got %#v", want, got)
+		t.Errorf("want/got:\n%#v\n%#v", want, got)
 	}
 }
 
@@ -487,5 +487,61 @@ func TestDecode_error(t *testing.T) {
 	err := Decode(h, &got)
 	if err == nil {
 		t.Errorf("expect error, got : %#v", got)
+	}
+}
+
+func TestDecodeHeader_embeddedStructs(t *testing.T) {
+	tests := []struct {
+		in     http.Header
+		decode func(http.Header) (interface{}, error)
+		want   interface{}
+	}{
+		{
+			http.Header{"C": []string{"foo"}},
+			func(h http.Header) (interface{}, error) {
+				var a A
+				err := Decode(h, &a)
+				return a, err
+			},
+			A{B{C: "foo"}},
+		},
+		{
+			http.Header{"C": []string{"foo"}},
+			func(h http.Header) (interface{}, error) {
+				var d D
+				err := Decode(h, &d)
+				return d, err
+			},
+			D{B: B{C: ""}, C: "foo"},
+		},
+		{
+			http.Header{"C": []string{"foo", "bar"}},
+			func(h http.Header) (interface{}, error) {
+				var d D
+				err := Decode(h, &d)
+				return d, err
+			},
+			D{B: B{C: "bar"}, C: "foo"},
+		},
+		{
+			http.Header{"C": []string{"foo", "bar"}},
+			func(h http.Header) (interface{}, error) {
+				var f F
+				err := Decode(h, &f)
+				return f, err
+			},
+			F{e{B: B{C: "bar"}, C: "foo"}}, // With unexported embed
+		},
+	}
+
+	for i, tt := range tests {
+		v, err := tt.decode(tt.in)
+		if err != nil {
+			t.Errorf("%d. Header(%+v) returned error: %v", i, tt.in, err)
+		}
+
+		if !reflect.DeepEqual(tt.want, v) {
+			t.Errorf("%d. Header(%+v) returned/want:\n%#+v\n%#+v", i, tt.in, v, tt.want)
+		}
 	}
 }
