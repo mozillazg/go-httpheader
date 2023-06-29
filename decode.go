@@ -20,7 +20,7 @@ type Decoder interface {
 func Decode(header http.Header, v interface{}) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
-		return fmt.Errorf("v should be point and should not be nil")
+		return fmt.Errorf("v should be a pointer and should not be nil")
 	}
 
 	for val.Kind() == reflect.Ptr {
@@ -33,7 +33,12 @@ func Decode(header http.Header, v interface{}) error {
 	return parseValue(header, val)
 }
 
+// parseValue populates the struct fields in val from the header fields.
+// Embedded structs are followed recursively (using the rules defined in the
+// Values function documentation) breadth-first.
 func parseValue(header http.Header, val reflect.Value) error {
+	var embedded []reflect.Value
+
 	typ := val.Type()
 	for i := 0; i < typ.NumField(); i++ {
 		sf := typ.Field(i)
@@ -49,6 +54,8 @@ func parseValue(header http.Header, val reflect.Value) error {
 		name, opts := parseTag(tag)
 		if name == "" {
 			if sf.Anonymous && sv.Kind() == reflect.Struct {
+				// save embedded struct for later processing
+				embedded = append(embedded, sv)
 				continue
 			}
 			name = sf.Name
@@ -73,8 +80,12 @@ func parseValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Kind() == reflect.Ptr {
+			valArr, exist := headerValues(header, name)
+			if !exist {
+				continue
+			}
 			ve := reflect.New(sv.Type().Elem())
-			if err := fillValues(ve, opts, headerValues(header, name)); err != nil {
+			if err := fillValues(ve, opts, valArr); err != nil {
 				return err
 			}
 			sv.Set(ve)
@@ -82,7 +93,11 @@ func parseValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Type() == timeType {
-			if err := fillValues(sv, opts, headerValues(header, name)); err != nil {
+			valArr, exist := headerValues(header, name)
+			if !exist {
+				continue
+			}
+			if err := fillValues(sv, opts, valArr); err != nil {
 				return err
 			}
 			continue
@@ -95,7 +110,35 @@ func parseValue(header http.Header, val reflect.Value) error {
 			continue
 		}
 
-		if err := fillValues(sv, opts, headerValues(header, name)); err != nil {
+		if sv.Kind() != reflect.Slice && sv.Kind() != reflect.Array && sv.Kind() != reflect.Interface {
+			vals := header.Values(name)
+			if len(vals) > 0 {
+				v := vals[0]
+				vals = vals[1:]
+
+				if err := fillValues(sv, opts, []string{v}); err != nil {
+					return err
+				}
+
+				header.Del(name)
+				for _, v := range vals {
+					header.Add(name, v)
+				}
+			}
+			continue
+		}
+
+		valArr, exist := headerValues(header, name)
+		if !exist {
+			continue
+		}
+		if err := fillValues(sv, opts, valArr); err != nil {
+			return err
+		}
+	}
+
+	for _, f := range embedded {
+		if err := parseValue(header, f); err != nil {
 			return err
 		}
 	}
@@ -249,6 +292,7 @@ func fillValues(sv reflect.Value, opts tagOptions, valArr []string) error {
 	return nil
 }
 
-func headerValues(h http.Header, key string) []string {
-	return textproto.MIMEHeader(h)[textproto.CanonicalMIMEHeaderKey(key)]
+func headerValues(h http.Header, key string) ([]string, bool) {
+	vs, ok := textproto.MIMEHeader(h)[textproto.CanonicalMIMEHeaderKey(key)]
+	return vs, ok
 }

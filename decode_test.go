@@ -136,6 +136,7 @@ func TestDecodeHeader_UnmarshalerWithNilPointer(t *testing.T) {
 
 type simpleStruct struct {
 	Foo string
+	Bar int
 }
 
 type fullTypeStruct struct {
@@ -243,7 +244,7 @@ func TestDecodeHeader_more_data_type(t *testing.T) {
 		t.Errorf("Decode returned error: %#v", err)
 	}
 	if !reflect.DeepEqual(want, got) {
-		t.Errorf("want %#v, but got %#v", want, got)
+		t.Errorf("want/got:\n%#v\n%#v", want, got)
 	}
 }
 
@@ -388,6 +389,42 @@ func Test_fillValues_errors(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "slice",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf([]int{})),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "array",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf([1]int{})),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "time",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(time.Time{})),
+				opts:   tagOptions{},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "time unix",
+			args: args{
+				sv:     reflect.New(reflect.TypeOf(time.Time{})),
+				opts:   tagOptions{"unix"},
+				valArr: []string{"a"},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -395,5 +432,116 @@ func Test_fillValues_errors(t *testing.T) {
 				t.Errorf("fillValues() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestDecode_check_header_key_not_present_no_point(t *testing.T) {
+	h := http.Header{}
+	h.Set("Length", "100")
+
+	var got fullTypeStruct
+	err := Decode(h, &got)
+	if err != nil {
+		t.Errorf("Decode returned error: %#v", err)
+	}
+
+	var want fullTypeStruct
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("want %#v, but got %#v", want, got)
+	}
+}
+
+func TestDecode_check_header_key_not_present_point(t *testing.T) {
+	type testStruct struct {
+		A *string
+		B *fullTypeStruct
+		C *int
+		D *[]string
+		E *[2]string
+		F interface{}
+		G *time.Time
+	}
+	h := http.Header{}
+	h.Set("Length", "100")
+
+	var got testStruct
+	err := Decode(h, &got)
+	if err != nil {
+		t.Errorf("Decode returned error: %#v", err)
+	}
+
+	var want testStruct
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("want %#v, but got %#v", want, got)
+	}
+	if got.A != nil || got.B != nil || got.C != nil || got.D != nil || got.E != nil || got.F != nil || got.G != nil {
+		t.Error("all fields should be nil")
+	}
+}
+
+func TestDecode_error(t *testing.T) {
+	h := http.Header{
+		"Int": []string{"abc"},
+	}
+	var got fullTypeStruct
+	err := Decode(h, &got)
+	if err == nil {
+		t.Errorf("expect error, got : %#v", got)
+	}
+}
+
+func TestDecodeHeader_embeddedStructs(t *testing.T) {
+	tests := []struct {
+		in     http.Header
+		decode func(http.Header) (interface{}, error)
+		want   interface{}
+	}{
+		{
+			http.Header{"C": []string{"foo"}},
+			func(h http.Header) (interface{}, error) {
+				var a A
+				err := Decode(h, &a)
+				return a, err
+			},
+			A{B{C: "foo"}},
+		},
+		{
+			http.Header{"C": []string{"foo"}},
+			func(h http.Header) (interface{}, error) {
+				var d D
+				err := Decode(h, &d)
+				return d, err
+			},
+			D{B: B{C: ""}, C: "foo"},
+		},
+		{
+			http.Header{"C": []string{"foo", "bar"}},
+			func(h http.Header) (interface{}, error) {
+				var d D
+				err := Decode(h, &d)
+				return d, err
+			},
+			D{B: B{C: "bar"}, C: "foo"},
+		},
+		{
+			http.Header{"C": []string{"foo", "bar"}},
+			func(h http.Header) (interface{}, error) {
+				var f F
+				err := Decode(h, &f)
+				return f, err
+			},
+			F{e{B: B{C: "bar"}, C: "foo"}}, // With unexported embed
+		},
+	}
+
+	for i, tt := range tests {
+		v, err := tt.decode(tt.in)
+		if err != nil {
+			t.Errorf("%d. Header(%+v) returned error: %v", i, tt.in, err)
+		}
+
+		if !reflect.DeepEqual(tt.want, v) {
+			t.Errorf("%d. Header(%+v) returned/want:\n%#+v\n%#+v", i, tt.in, v, tt.want)
+		}
 	}
 }
