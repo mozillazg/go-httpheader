@@ -532,6 +532,15 @@ func TestDecodeHeader_embeddedStructs(t *testing.T) {
 			},
 			F{e{B: B{C: "bar"}, C: "foo"}}, // With unexported embed
 		},
+		{
+			http.Header{"C": []string{"bar"}},
+			func(h http.Header) (interface{}, error) {
+				var f F
+				err := Decode(h, &f)
+				return f, err
+			},
+			F{e{C: "bar"}}, // With unexported embed
+		},
 	}
 
 	for i, tt := range tests {

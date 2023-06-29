@@ -111,19 +111,20 @@ func parseValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Kind() != reflect.Slice && sv.Kind() != reflect.Array && sv.Kind() != reflect.Interface {
-			vals := header.Values(name)
-			if len(vals) > 0 {
-				v := vals[0]
-				vals = vals[1:]
+			vals, exist := headerValues(header, name)
+			if !exist {
+				continue
+			}
+			v := vals[0]
+			vals = vals[1:]
 
-				if err := fillValues(sv, opts, []string{v}); err != nil {
-					return err
-				}
+			if err := fillValues(sv, opts, []string{v}); err != nil {
+				return err
+			}
 
-				header.Del(name)
-				for _, v := range vals {
-					header.Add(name, v)
-				}
+			header.Del(name)
+			for _, v := range vals {
+				header.Add(name, v)
 			}
 			continue
 		}
