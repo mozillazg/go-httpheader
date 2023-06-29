@@ -1,6 +1,7 @@
 package httpheader
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/textproto"
@@ -20,7 +21,7 @@ type Decoder interface {
 func Decode(header http.Header, v interface{}) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
-		return fmt.Errorf("v should be a pointer and should not be nil")
+		return errors.New("v should be a pointer and should not be nil")
 	}
 
 	for val.Kind() == reflect.Ptr {
