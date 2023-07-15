@@ -19,6 +19,7 @@ package httpheader
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -31,6 +32,7 @@ const tagName = "header"
 // Version ...
 const Version = "0.3.1"
 
+var uuidType = reflect.TypeOf(uuid.UUID{})
 var timeType = reflect.TypeOf(time.Time{})
 var headerType = reflect.TypeOf(http.Header{})
 
@@ -170,6 +172,11 @@ func reflectValue(header http.Header, val reflect.Value) error {
 			continue
 		}
 
+		if sv.Type() == uuidType {
+			header.Add(name, valueString(sv, opts))
+			continue
+		}
+
 		if sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array {
 			for i := 0; i < sv.Len(); i++ {
 				k := name
@@ -242,12 +249,20 @@ func valueString(v reflect.Value, opts tagOptions) string {
 		return t.Format(http.TimeFormat)
 	}
 
+	if v.Type() == reflect.TypeOf(uuid.UUID{}) {
+		return v.Interface().(uuid.UUID).String()
+	}
+
 	return fmt.Sprint(v.Interface())
 }
 
 // isEmptyValue checks if a value should be considered empty for the purposes
 // of omitting fields with the "omitempty" option.
 func isEmptyValue(v reflect.Value) bool {
+	if v.Type() == reflect.TypeOf(uuid.UUID{}) {
+		return v.Interface().(uuid.UUID) == uuid.Nil
+	}
+
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0

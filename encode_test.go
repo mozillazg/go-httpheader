@@ -2,6 +2,7 @@ package httpheader
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"reflect"
 	"testing"
@@ -81,6 +82,8 @@ func TestHeader_types(t *testing.T) {
 				C bool      `header:",int"`
 				D bool      `header:",int"`
 				E http.Header
+				H uuid.UUID
+				I uuid.UUID
 			}{
 				A: time.Date(2000, 1, 1, 12, 34, 56, 0, time.UTC),
 				B: time.Date(2000, 1, 1, 12, 34, 56, 0, time.UTC),
@@ -90,6 +93,8 @@ func TestHeader_types(t *testing.T) {
 					"F": []string{"f1"},
 					"G": []string{"gg"},
 				},
+				H: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+				I: uuid.MustParse("12345678-1234-1234-1234-123456789012"),
 			},
 			http.Header{
 				"A": []string{"Sat, 01 Jan 2000 12:34:56 GMT"},
@@ -98,6 +103,8 @@ func TestHeader_types(t *testing.T) {
 				"D": []string{"0"},
 				"F": []string{"f1"},
 				"G": []string{"gg"},
+				"H": []string{"00000000-0000-0000-0000-000000000000"},
+				"I": []string{"12345678-1234-1234-1234-123456789012"},
 			},
 		},
 		{

@@ -3,6 +3,7 @@ package httpheader
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/textproto"
 	"reflect"
@@ -155,6 +156,15 @@ func fillValues(sv reflect.Value, opts tagOptions, valArr []string) error {
 	}
 	for sv.Kind() == reflect.Ptr {
 		sv = sv.Elem()
+	}
+
+	if sv.Type() == reflect.TypeOf(uuid.UUID{}) {
+		v, err := uuid.Parse(value)
+		if err != nil {
+			return err
+		}
+		sv.Set(reflect.ValueOf(v))
+		return nil
 	}
 
 	switch sv.Kind() {

@@ -2,6 +2,7 @@ package httpheader
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/textproto"
 	"reflect"
@@ -167,8 +168,10 @@ type fullTypeStruct struct {
 	Time              time.Time
 	TimeUnix          time.Time `header:"Time-Unix,unix"`
 	// Point             *string
-	Args DecodedArgs `header:"Arg"`
-	Foo  simpleStruct
+	Args     DecodedArgs `header:"Arg"`
+	Foo      simpleStruct
+	UUID     uuid.UUID `header:"Uuid"`
+	UUIDZero uuid.UUID `header:"UuidZero"`
 }
 
 func TestDecodeHeader_more_data_type(t *testing.T) {
@@ -206,6 +209,8 @@ func TestDecodeHeader_more_data_type(t *testing.T) {
 		"Arg.1":        []string{"b"},
 		"Arg.2":        []string{"c"},
 		"Foo":          []string{"bar"},
+		"Uuid":         []string{"123e4567-e89b-12d3-a456-426655440000"},
+		"UuidZero":     []string{"00000000-0000-0000-0000-000000000000"},
 	}
 	want := fullTypeStruct{
 		unExport:          "",
@@ -235,8 +240,10 @@ func TestDecodeHeader_more_data_type(t *testing.T) {
 		Time:              timeV,
 		TimeUnix:          timeV,
 		// Point:             stringPoint("foo"),
-		Args: []string{"a", "b", "c"},
-		Foo:  simpleStruct{Foo: "bar"},
+		Args:     []string{"a", "b", "c"},
+		Foo:      simpleStruct{Foo: "bar"},
+		UUID:     uuid.MustParse("123e4567-e89b-12d3-a456-426655440000"),
+		UUIDZero: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 	}
 	var got fullTypeStruct
 	err := Decode(h, &got)
